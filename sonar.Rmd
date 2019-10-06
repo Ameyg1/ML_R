@@ -1,0 +1,47 @@
+---
+title: "Caret practice"
+author: "Amey Ghodke"
+date: "10/6/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Caret Package
+
+I have used the Sonar data from mlbench 
+
+```{r}
+library(caret)
+library(mlbench)
+data(Sonar)
+```
+
+## Creating partition
+
+
+```{r}
+set.seed(110)
+inTrain<-createDataPartition(y=Sonar$Class,p=.75,list=FALSE)
+str(inTrain)
+```
+## Train and test split
+```{r}
+training=Sonar[inTrain,]
+test=Sonar[-inTrain,]
+dim(training)
+dim(test)
+```
+## Fitting the model model on training set using 10 fold cross validation.
+```{r}
+ctrl <- trainControl(method = "repeatedcv", repeats = 3,classProbs = TRUE, summaryFunction = twoClassSummary)
+fit<-train(Class~.,data=training,method="pls",preProc=c("center","scale"),tuneLength=15,trControl=ctrl,metric="ROC")
+fit
+```
+## evaluating model with test data
+```{r}
+plsclass<-predict(fit,newdata=test)
+confusionMatrix(data=plsclass,test$Class)
+```

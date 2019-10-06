@@ -1,0 +1,73 @@
+---
+title: "Iris"
+author: "Amey Ghodke"
+date: "06/10/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Obviously Iris 
+
+A benchmark dataset.
+
+```{r}
+library(caret)
+library(RWeka)
+head(iris)
+summary(iris)
+```
+No missing values nor any preprocessing required.
+
+We now split the data into training and testing
+
+## Split the data
+
+```{r}
+intrain<-createDataPartition(iris$Species,p=.75,list=FALSE)
+trainset<-iris[intrain,]
+testset<-iris[-intrain,]
+```
+
+## 10cross validation folds
+
+```{r}
+ctrl<-trainControl(method="repeatedcv",number=10,repeats=1)
+```
+## Fitting random forest model
+```{r}
+system.time(model.fit<-train(Species~.,data=trainset,method='rf',trControl=ctrl))
+```
+```{r}
+rf1<-predict(model.fit,newdata=testset)
+confusionMatrix(data=rf1,testset$Species)
+```
+We see that Random Forest has 91% accuracy.
+
+#Naive bayes
+
+```{r}
+set.seed(394)
+model.fit1<-train(Species~.,data=trainset,method="nb",trControl=ctrl)
+model.fit1
+nb<-predict(model.fit1,newdata=testset)
+confusionMatrix(data=nb,testset$Species)
+```
+## Linear Discriminant Analysis
+```{r}
+set.seed(234)
+model.fit2<-train(Species~.,data=trainset,method="lda",trControl=ctrl)
+model.fit2
+ld<-predict(model.fit2,newdata=testset)
+confusionMatrix(data=ld,testset$Species)
+```
+## J48
+```{r}
+set.seed(378)
+model.fit3<-train(Species~.,data=trainset,method="J48",trControl=ctrl)
+model.fit3
+j48<-predict(model.fit3,newdata=testset)
+confusionMatrix(data=j48,testset$Species)
+```
