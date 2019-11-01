@@ -1,0 +1,166 @@
+---
+title: "Winedataset"
+author: "Amey Ghodke"
+date: "02/11/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## About the dataset
+
+This dataset has 13 attributes and decscribes about the wines in a certain region in Italy. We have 3 classes of alcohol class 1, class 2 and class 3. This data set was downloaded from the UCI Repository. The datset was preprocessed as per the dataset description.
+
+```{r}
+library(caret)
+library(psych)
+library(tidyverse)
+library(dplyr)
+library(mice)
+library(VIM)
+library(Boruta)
+library(randomForest)
+library(FSelector)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r}
+wine<-read.csv("wine.csv",header=TRUE)
+```
+
+```{r}
+wine$Class<-as.factor(wine$Class)
+```
+
+We see the structure of the Dataset
+
+```{r}
+str(wine)
+```
+```{r}
+f<-ggplot(wine,aes(Malic.acid,Alcohol,color=Class))
+f+geom_point()
+f+geom_smooth()
+f+geom_boxplot()
+```
+We can see that class 1 has has alcohol content and lower malic acid concentration.
+
+We first scale the the data.
+
+# Split train and test data.
+```{r}
+split<-createDataPartition(wine$Class,p=0.7,list=FALSE)
+traindata<-wine[split,]
+testdata<-wine[-split,]
+```
+
+#preprocess
+
+```{r}
+set.seed(1)
+prepro<-preProcess(traindata[-1,],method=c("range"))
+traindata1<-predict(prepro,traindata)
+traindata1$Class<-traindata$Class
+testdata1<-predict(prepro,testdata)
+testdata1$Class<-testdata$Class
+```
+
+```{r}
+ctrl<-trainControl(method="repeatedcv",number=10,repeats=3)
+```
+#Knn
+
+```{r}
+knn<-train(Class~.,traindata1,method="knn",trControl=ctrl)
+```
+
+We see the model 
+
+```{r}
+knn
+```
+
+```{r}
+confusionMatrix(predict(knn,testdata1),testdata1$Class)
+```
+
+
+Without feature selection the accuracy is 94.23%. Now we Conduct Feature Selection to select the best features.
+
+```{r}
+boruta<-Boruta(Class~.,data=traindata1,doTrace = 2)
+```
+
+No feature selection as all Features are deemed important
+
+Tuning Knn parameters.
+
+```{r}
+knn1<-train(Class~.,traindata1,method="knn",tuneLength=20,trControl=ctrl)
+```
+We see the model
+```{r}
+knn
+```
+
+Final model has k=43 as the best model.
+
+```{r}
+plot(knn1)
+```
+
+Now Determing the confusion matrix
+
+```{r}
+confusionMatrix(predict(knn1,testdata1),testdata1$Class)
+```
+
+So Knn has a accuracy of 96.15%
+
+We now train Random Forest Model
+
+```{r}
+rf<-train(Class~.,traindata1,method="ranger",trControl=ctrl)
+```
+We see the model.
+```{r}
+rf
+plot(rf)
+```
+
+```{r}
+confusionMatrix(predict(rf,testdata1),testdata1$Class)
+```
+
+Tuning the parametrs of RF.
+```{r}
+rf1<-train(Class~.,traindata1,method="ranger",tuneLength=20,trControl=ctrl)
+```
+```{r}
+rf1
+plot(rf1)
+```
+
+# rda
+
+```{r}
+rda<-train(Class~.,traindata1,method="rda",trControl=ctrl)
+```
+
+The model
+
+```{r}
+rda
+plot(rda)
+```
+
+```{r}
+confusionMatrix(predict(rda,testdata1),testdata$Class)
+```
+
+So Regularized Discriminant Analysis gives 100 % accuracy.
